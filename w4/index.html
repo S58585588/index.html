@@ -1,0 +1,363 @@
+<header>
+  <h1 class="title">朋友對我的動態留言板 💌</h1>
+  <p class="subtitle">悄悄話展覽中，每 3 秒輪流閃耀每一張心意 ✨</p>
+</header>
+
+<main class="container">
+  <!-- 1. 載入中動畫 -->
+  <div id="loading-screen">
+    <div class="spinner"></div>
+    <p class="loading-text">讀取留言中...</p>
+  </div>
+
+  <!-- 2. 瀑布流卡片牆 -->
+  <div id="wall" class="masonry-grid"></div>
+</main>
+
+<style>
+  /* 全局樣式與主題顏色變數 */
+  :root {
+    --bg-gradient: linear-gradient(135deg, #ff9a9e 0%, #fecfef 40%, #a1c4fd 100%);
+    --card-bg: rgba(255, 255, 255, 0.85);
+    --primary-color: #ff6b81;       /* 主顏色：粉紅 */
+    --secondary-color: #70a1ff;     /* 副顏色：粉藍 */
+    --text-main: #2d3436;
+    --text-sub: #888888;
+    --highlight-shadow: 0 15px 35px rgba(255, 107, 129, 0.5);
+    --transition-speed: 0.5s;
+  }
+
+  body {
+    font-family: 'Fredoka', 'Noto Sans TC', sans-serif;
+    background: var(--bg-gradient);
+    background-size: 300% 300%;
+    animation: gradientFlow 15s ease infinite;
+    min-height: 100vh;
+    padding: 40px 20px;
+    color: var(--text-main);
+    overflow-x: hidden;
+    box-sizing: border-box;
+    margin: 0;
+  }
+
+  @keyframes gradientFlow {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 2px 4px 10px rgba(0, 0, 0, 0.15);
+  }
+
+  .subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-top: 8px;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* 載入中動畫 */
+  #loading-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 80px 20px;
+  }
+
+  .spinner {
+    width: 60px;
+    height: 60px;
+    border: 6px solid rgba(255, 255, 255, 0.4);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spinBounce 1.2s cubic-bezier(0.68, -0.55, 0.27, 1.55) infinite;
+  }
+
+  .loading-text {
+    margin-top: 20px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #ffffff;
+    animation: pulseText 1.5s ease-in-out infinite alternate;
+  }
+
+  @keyframes spinBounce {
+    0% { transform: rotate(0deg) scale(0.9); }
+    50% { transform: rotate(180deg) scale(1.1); }
+    100% { transform: rotate(360deg) scale(0.9); }
+  }
+
+  @keyframes pulseText {
+    0% { opacity: 0.6; transform: translateY(0); }
+    100% { opacity: 1; transform: translateY(-4px); }
+  }
+
+  /* 瀑布流排版 */
+  .masonry-grid {
+    column-count: 3;
+    column-gap: 20px;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+  }
+
+  @media (max-width: 900px) { .masonry-grid { column-count: 2; } }
+  @media (max-width: 550px) { .masonry-grid { column-count: 1; } }
+
+  /* 卡片與 Highlight 特效 */
+  .card {
+    break-inside: avoid;
+    margin-bottom: 20px;
+    background: var(--card-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 22px;
+    padding: 22px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    transition: all var(--transition-speed) cubic-bezier(0.34, 1.56, 0.64, 1);
+    cursor: pointer;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.2rem;
+  }
+
+  .author-info { display: flex; flex-direction: column; }
+  .author-name { font-size: 1.1rem; font-weight: 700; color: var(--text-main); }
+  .timestamp { font-size: 0.75rem; color: var(--text-sub); }
+  .message-content { font-size: 0.98rem; line-height: 1.6; color: #4a4a4a; white-space: pre-wrap; word-break: break-word; }
+  .card-footer { text-align: right; margin-top: 10px; font-size: 1.1rem; }
+
+  /* 聚焦亮起與變暗模糊 */
+  .card.highlight {
+    transform: scale(1.08) translateY(-5px);
+    z-index: 10;
+    background: rgba(255, 255, 255, 0.98);
+    border: 3px solid var(--primary-color);
+    box-shadow: var(--highlight-shadow);
+    animation: rainbowGlow 2s infinite alternate;
+  }
+
+  .masonry-grid.has-active .card:not(.highlight) {
+    opacity: 0.45;
+    filter: blur(1.5px) grayscale(20%);
+    transform: scale(0.96);
+  }
+
+  @keyframes rainbowGlow {
+    0% { border-color: #ff6b81; box-shadow: 0 10px 30px rgba(255, 107, 129, 0.6); }
+    50% { border-color: #a1c4fd; box-shadow: 0 10px 30px rgba(161, 196, 253, 0.6); }
+    100% { border-color: #fecfef; box-shadow: 0 10px 30px rgba(254, 207, 239, 0.6); }
+  }
+</style>
+
+<script>
+  // ==========================================
+  // 多種 CSV 備用來源網址（解決 Google 檔 CORS 限制）
+  // ==========================================
+  const CSV_URLS = [
+    // 來源 1：Google Visualization API（最穩定）
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTMimqOlV2N4iSrb534yyVDauY3sq7VDlz-JtCvAkneylgypbaj-hQyTq0sJcT-uOL87K-EiBvjJHFp/gviz/tq?tqx=out:csv',
+    // 來源 2：原始發布網址
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vTMimqOlV2N4iSrb534yyVDauY3sq7VDlz-JtCvAkneylgypbaj-hQyTq0sJcT-uOL87K-EiBvjJHFp/pub?output=csv',
+    // 來源 3：使用 CORS 代理伺服器
+    'https://corsproxy.io/?' + encodeURIComponent('https://docs.google.com/spreadsheets/d/e/2PACX-1vTMimqOlV2N4iSrb534yyVDauY3sq7VDlz-JtCvAkneylgypbaj-hQyTq0sJcT-uOL87K-EiBvjJHFp/pub?output=csv')
+  ];
+
+  const ROTATION_INTERVAL = 3000; // 輪播秒數：3000ms = 3秒
+  const EMOJI_LIST = ['🌸', '✨', '🎀', '🧸', '🍭', '🐥', '🍬', '🎈', '🍓', '🧁'];
+  const AVATAR_COLORS = ['#ff7675', '#74b9ff', '#55efc4', '#a29bfe', '#ffeaa7', '#fd79a8'];
+
+  let messages = [];
+  let currentIndex = 0;
+  let timerId = null;
+
+  // 健全解析 CSV 函式
+  function parseCSV(text) {
+    const result = [];
+    let row = [];
+    let entry = '';
+    let insideQuotes = false;
+
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      const nextC = text[i + 1];
+
+      if (c === '"') {
+        if (insideQuotes && nextC === '"') {
+          entry += '"';
+          i++;
+        } else {
+          insideQuotes = !insideQuotes;
+        }
+      } else if (c === ',' && !insideQuotes) {
+        row.push(entry.trim());
+        entry = '';
+      } else if ((c === '\r' || c === '\n') && !insideQuotes) {
+        if (c === '\r' && nextC === '\n') i++;
+        row.push(entry.trim());
+        if (row.some(f => f !== '')) result.push(row);
+        row = [];
+        entry = '';
+      } else {
+        entry += c;
+      }
+    }
+    if (entry !== '' || row.length > 0) {
+      row.push(entry.trim());
+      if (row.some(f => f !== '')) result.push(row);
+    }
+    return result;
+  }
+
+  // 嘗試多個網址發送 fetch
+  async function fetchMessages() {
+    let csvRawText = null;
+
+    for (const url of CSV_URLS) {
+      try {
+        const res = await fetch(url);
+        if (res.ok) {
+          csvRawText = await res.text();
+          if (csvRawText && csvRawText.length > 0) break;
+        }
+      } catch (e) {
+        console.warn('嘗試網址失敗:', url, e);
+      }
+    }
+
+    if (!csvRawText) {
+      document.getElementById('loading-screen').innerHTML = `
+        <p style="color: #ffffff; background: rgba(214, 48, 49, 0.8); padding: 15px 25px; border-radius: 15px; font-weight: bold;">
+          😭 讀取留言失敗！請確認試算表已開啟「知道連結的人皆可查看」權限。
+        </p>`;
+      return;
+    }
+
+    const parsedData = parseCSV(csvRawText);
+    messages = parsedData.slice(1).map(item => ({
+      timestamp: item[0] || '剛剛',
+      name: item[1] || '匿名朋友',
+      content: item[2] || '（無內容）'
+    })).filter(m => m.name !== '匿名朋友' || m.content !== '（無內容）');
+
+    renderWall();
+  }
+
+  function renderWall() {
+    const wallContainer = document.getElementById('wall');
+    document.getElementById('loading-screen').style.display = 'none';
+
+    if (messages.length === 0) {
+      wallContainer.innerHTML = '<p style="text-align:center; color:white; font-size:1.2rem;">目前還沒有任何留言喔！</p>';
+      wallContainer.style.opacity = '1';
+      return;
+    }
+
+    wallContainer.innerHTML = messages.map((msg, idx) => {
+      const firstLetter = msg.name.charAt(0).toUpperCase();
+      const randomBg = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+      const randomEmoji = EMOJI_LIST[idx % EMOJI_LIST.length];
+
+      return `
+        <div class="card" data-index="${idx}">
+          <div class="card-header">
+            <div class="avatar" style="background: ${randomBg}">${firstLetter}</div>
+            <div class="author-info">
+              <span class="author-name">${escapeHTML(msg.name)}</span>
+              <span class="timestamp">${escapeHTML(msg.timestamp)}</span>
+            </div>
+          </div>
+          <div class="message-content">${escapeHTML(msg.content)}</div>
+          <div class="card-footer">${randomEmoji}</div>
+        </div>
+      `;
+    }).join('');
+
+    wallContainer.style.opacity = '1';
+
+    document.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => {
+        const index = parseInt(card.getAttribute('data-index'), 10);
+        highlightCard(index);
+        resetCarouselTimer();
+      });
+    });
+
+    startCarousel();
+  }
+
+  function escapeHTML(str) {
+    return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+  }
+
+  function highlightCard(index) {
+    const cards = document.querySelectorAll('.card');
+    const wallContainer = document.getElementById('wall');
+    if (cards.length === 0) return;
+
+    wallContainer.classList.add('has-active');
+    cards.forEach(card => card.classList.remove('highlight'));
+
+    const targetCard = cards[index];
+    if (targetCard) {
+      targetCard.classList.add('highlight');
+      targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    currentIndex = index;
+  }
+
+  function startCarousel() {
+    if (messages.length === 0) return;
+    highlightCard(0);
+    timerId = setInterval(() => {
+      currentIndex = (currentIndex + 1) % messages.length;
+      highlightCard(currentIndex);
+    }, ROTATION_INTERVAL);
+  }
+
+  function resetCarouselTimer() {
+    if (timerId) clearInterval(timerId);
+    timerId = setInterval(() => {
+      currentIndex = (currentIndex + 1) % messages.length;
+      highlightCard(currentIndex);
+    }, ROTATION_INTERVAL);
+  }
+
+  // 初始化執行
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fetchMessages);
+  } else {
+    fetchMessages();
+  }
+</script>
